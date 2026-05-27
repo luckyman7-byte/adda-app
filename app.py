@@ -4,6 +4,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import plotly.express as px
+import datetime
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_squared_error
@@ -44,6 +45,14 @@ h2, h3 {color: #34495E;}
 st.markdown("<h1>📊 A‑DAA v1 — AI Data Analyst</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center;color:gray;'>Upload your dataset and start exploring insights.</p>", unsafe_allow_html=True)
 
+# --- Recent Activity Log ---
+if "activity_log" not in st.session_state:
+    st.session_state.activity_log = []
+
+def log_activity(message):
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    st.session_state.activity_log.append(f"{message} — {timestamp}")
+
 # --- File Upload ---
 uploaded_file = st.file_uploader("📁 Upload CSV File", type=["csv"])
 
@@ -51,10 +60,11 @@ if uploaded_file:
     df = pd.read_csv(uploaded_file)
     st.success("✅ File uploaded successfully!")
     st.dataframe(df.head(), use_container_width=True)
+    log_activity(f"📁 File uploaded: {uploaded_file.name}")
 
     # --- Tabs for Navigation ---
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "Overview", "EDA", "Visualizations", "Dashboard", "ML Mode", "Column Insights"
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "Overview", "EDA", "Visualizations", "Dashboard", "ML Mode", "Column Insights", "Recent Activity"
     ])
 
     # --- Overview ---
@@ -77,6 +87,7 @@ if uploaded_file:
             fig, ax = plt.subplots()
             sns.heatmap(numeric_df.corr(), cmap="coolwarm", annot=True, ax=ax)
             st.pyplot(fig)
+            log_activity("🔍 Correlation heatmap generated")
         else:
             st.warning("No numeric columns found for correlation heatmap")
 
@@ -90,26 +101,29 @@ if uploaded_file:
                 col = st.selectbox("Choose Column", numeric_cols)
                 fig = px.histogram(df, x=col, template="plotly_white")
                 st.plotly_chart(fig, use_container_width=True)
+                log_activity(f"📈 Histogram plotted for {col}")
             elif chart_type == "Line Plot":
                 col = st.selectbox("Choose Column", numeric_cols)
                 fig = px.line(df, y=col, template="plotly_white")
                 st.plotly_chart(fig, use_container_width=True)
+                log_activity(f"📈 Line plot generated for {col}")
             elif chart_type == "Scatter Plot":
                 x = st.selectbox("X-axis", numeric_cols)
                 y = st.selectbox("Y-axis", numeric_cols)
                 fig = px.scatter(df, x=x, y=y, template="plotly_white")
                 st.plotly_chart(fig, use_container_width=True)
+                log_activity(f"📈 Scatter plot generated for {x} vs {y}")
             elif chart_type == "Box Plot":
                 col = st.selectbox("Choose Column", numeric_cols)
                 fig = px.box(df, y=col, template="plotly_white")
                 st.plotly_chart(fig, use_container_width=True)
+                log_activity(f"📈 Box plot generated for {col}")
         else:
             st.warning("No numeric columns found to visualize")
 
-    # --- Dashboard Mode (KPIs + All Charts + Heatmap) ---
+    # --- Dashboard Mode ---
     with tab4:
         st.subheader("📊 Dashboard Mode")
-
         col_filter = st.selectbox("Select Column to Filter", df.columns)
         unique_vals = df[col_filter].unique()
         selected_val = st.selectbox("Filter Value", unique_vals)
@@ -127,34 +141,23 @@ if uploaded_file:
             kpi3.metric("Min", round(filtered_df[col].min(), 2))
 
             st.subheader("📈 Charts")
-
-            # Line Plot
             st.write("Line Plot")
-            fig_line = px.line(filtered_df, y=col, template="plotly_white")
-            st.plotly_chart(fig_line, use_container_width=True)
-
-            # Histogram
+            st.plotly_chart(px.line(filtered_df, y=col, template="plotly_white"), use_container_width=True)
             st.write("Histogram")
-            fig_hist = px.histogram(filtered_df, x=col, template="plotly_white")
-            st.plotly_chart(fig_hist, use_container_width=True)
-
-            # Box Plot
+            st.plotly_chart(px.histogram(filtered_df, x=col, template="plotly_white"), use_container_width=True)
             st.write("Box Plot")
-            fig_box = px.box(filtered_df, y=col, template="plotly_white")
-            st.plotly_chart(fig_box, use_container_width=True)
+            st.plotly_chart(px.box(filtered_df, y=col, template="plotly_white"), use_container_width=True)
 
-            # Scatter Plot
             if len(numeric_cols) > 1:
                 st.write("Scatter Plot")
                 other_col = st.selectbox("Select another column for Scatter", [c for c in numeric_cols if c != col])
-                fig_scatter = px.scatter(filtered_df, x=col, y=other_col, template="plotly_white")
-                st.plotly_chart(fig_scatter, use_container_width=True)
+                st.plotly_chart(px.scatter(filtered_df, x=col, y=other_col, template="plotly_white"), use_container_width=True)
 
-            # Correlation Heatmap
             st.subheader("🔍 Correlation Heatmap")
             fig, ax = plt.subplots()
             sns.heatmap(filtered_df[numeric_cols].corr(), cmap="coolwarm", annot=True, ax=ax)
             st.pyplot(fig)
+            log_activity("📊 Dashboard charts and heatmap generated")
         else:
             st.warning("No numeric columns to show KPIs or charts")
 
@@ -182,6 +185,7 @@ if uploaded_file:
                     st.success("Model Trained Successfully!")
                     st.write("R² Score:", round(r2_score(y_test, preds), 3))
                     st.write("MSE:", round(mean_squared_error(y_test, preds), 3))
+                    log_activity("🤖 Regression model trained")
 
     # --- Column Insights ---
     with tab6:
