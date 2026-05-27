@@ -165,4 +165,34 @@ if uploaded_file:
         if len(numeric_cols) < 2:
             st.warning("Need at least 2 numeric columns for ML mode")
         else:
-            target = st.selectbox("Select Target Column
+            target = st.selectbox("Select Target Column", numeric_cols)
+            features = st.multiselect("Select Feature Columns", [c for c in numeric_cols if c != target],
+                                      default=[c for c in numeric_cols if c != target][:3])
+            if st.button("Train Model"):
+                clean_df = df[[target] + features].dropna()
+                X = clean_df[features]
+                y = clean_df[target]
+                if len(X) < 10:
+                    st.error("Not enough data after dropping NaNs. Need 10+ rows")
+                else:
+                    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+                    model = LinearRegression()
+                    model.fit(X_train, y_train)
+                    preds = model.predict(X_test)
+                    st.success("Model Trained Successfully!")
+                    st.write("R² Score:", round(r2_score(y_test, preds), 3))
+                    st.write("MSE:", round(mean_squared_error(y_test, preds), 3))
+
+    # --- Column Insights ---
+    with tab6:
+        st.subheader("🧠 Column-wise Recommendations")
+        for col in df.columns:
+            st.write(f"### 📌 {col}")
+            if df[col].dtype == "object":
+                st.write("Recommendation: Encode this column (Label/One-Hot Encoding).")
+            elif df[col].dtype in ["int64", "float64"]:
+                st.write("Recommendation: Use for statistics, visualizations, and ML.")
+            if df[col].isnull().sum() > 0:
+                st.warning(f"Missing values detected: {df[col].isnull().sum()} — Impute or remove.")
+else:
+    st.info("Upload a CSV file to start analyzing.")
