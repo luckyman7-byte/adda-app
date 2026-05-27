@@ -18,37 +18,20 @@ st.set_page_config(
 # --- Custom CSS Styling ---
 st.markdown("""
 <style>
-/* Centered header */
 h1 {
     text-align: center;
     color: #2C3E50;
     font-weight: 700;
 }
-
-/* Subheader styling */
-h2, h3 {
-    color: #34495E;
-}
-
-/* Tabs centered */
-.stTabs [data-baseweb="tab-list"] {
-    justify-content: center;
-}
-
-/* KPI metric cards */
+h2, h3 {color: #34495E;}
+.stTabs [data-baseweb="tab-list"] {justify-content: center;}
 .stMetric {
     background-color: #e8f5e9;
     border-radius: 12px;
     padding: 15px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
-
-/* Page background */
-.main {
-    background-color: #f8f9fa;
-}
-
-/* Upload box styling */
+.main {background-color: #f8f9fa;}
 .css-1cpxqw2 {
     border: 2px dashed #4CAF50 !important;
     border-radius: 10px;
@@ -123,9 +106,10 @@ if uploaded_file:
         else:
             st.warning("No numeric columns found to visualize")
 
-    # --- Dashboard Mode ---
+    # --- Dashboard Mode (KPIs + All Charts + Heatmap) ---
     with tab4:
         st.subheader("📊 Dashboard Mode")
+
         col_filter = st.selectbox("Select Column to Filter", df.columns)
         unique_vals = df[col_filter].unique()
         selected_val = st.selectbox("Filter Value", unique_vals)
@@ -134,15 +118,45 @@ if uploaded_file:
 
         numeric_cols = filtered_df.select_dtypes(include=np.number).columns
         if len(numeric_cols) > 0:
-            col = st.selectbox("Select Column for KPIs", numeric_cols)
+            col = st.selectbox("Select Column for KPIs & Charts", numeric_cols)
+
+            # KPIs
             kpi1, kpi2, kpi3 = st.columns(3)
             kpi1.metric("Mean", round(filtered_df[col].mean(), 2))
             kpi2.metric("Max", round(filtered_df[col].max(), 2))
             kpi3.metric("Min", round(filtered_df[col].min(), 2))
-            fig = px.line(filtered_df, y=col, template="plotly_white")
-            st.plotly_chart(fig, use_container_width=True)
+
+            st.subheader("📈 Charts")
+
+            # Line Plot
+            st.write("Line Plot")
+            fig_line = px.line(filtered_df, y=col, template="plotly_white")
+            st.plotly_chart(fig_line, use_container_width=True)
+
+            # Histogram
+            st.write("Histogram")
+            fig_hist = px.histogram(filtered_df, x=col, template="plotly_white")
+            st.plotly_chart(fig_hist, use_container_width=True)
+
+            # Box Plot
+            st.write("Box Plot")
+            fig_box = px.box(filtered_df, y=col, template="plotly_white")
+            st.plotly_chart(fig_box, use_container_width=True)
+
+            # Scatter Plot
+            if len(numeric_cols) > 1:
+                st.write("Scatter Plot")
+                other_col = st.selectbox("Select another column for Scatter", [c for c in numeric_cols if c != col])
+                fig_scatter = px.scatter(filtered_df, x=col, y=other_col, template="plotly_white")
+                st.plotly_chart(fig_scatter, use_container_width=True)
+
+            # Correlation Heatmap
+            st.subheader("🔍 Correlation Heatmap")
+            fig, ax = plt.subplots()
+            sns.heatmap(filtered_df[numeric_cols].corr(), cmap="coolwarm", annot=True, ax=ax)
+            st.pyplot(fig)
         else:
-            st.warning("No numeric columns to show KPIs")
+            st.warning("No numeric columns to show KPIs or charts")
 
     # --- ML Mode ---
     with tab5:
@@ -151,34 +165,4 @@ if uploaded_file:
         if len(numeric_cols) < 2:
             st.warning("Need at least 2 numeric columns for ML mode")
         else:
-            target = st.selectbox("Select Target Column", numeric_cols)
-            features = st.multiselect("Select Feature Columns", [c for c in numeric_cols if c != target],
-                                      default=[c for c in numeric_cols if c != target][:3])
-            if st.button("Train Model"):
-                clean_df = df[[target] + features].dropna()
-                X = clean_df[features]
-                y = clean_df[target]
-                if len(X) < 10:
-                    st.error("Not enough data after dropping NaNs. Need 10+ rows")
-                else:
-                    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-                    model = LinearRegression()
-                    model.fit(X_train, y_train)
-                    preds = model.predict(X_test)
-                    st.success("Model Trained Successfully!")
-                    st.write("R² Score:", round(r2_score(y_test, preds), 3))
-                    st.write("MSE:", round(mean_squared_error(y_test, preds), 3))
-
-    # --- Column Insights ---
-    with tab6:
-        st.subheader("🧠 Column-wise Recommendations")
-        for col in df.columns:
-            st.write(f"### 📌 {col}")
-            if df[col].dtype == "object":
-                st.write("Recommendation: Encode this column (Label/One-Hot Encoding).")
-            elif df[col].dtype in ["int64", "float64"]:
-                st.write("Recommendation: Use for statistics, visualizations, and ML.")
-            if df[col].isnull().sum() > 0:
-                st.warning(f"Missing values detected: {df[col].isnull().sum()} — Impute or remove.")
-else:
-    st.info("Upload a CSV file to start analyzing.")
+            target = st.selectbox("Select Target Column
