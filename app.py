@@ -15,19 +15,51 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- Custom Styling ---
+# --- Custom CSS Styling ---
 st.markdown("""
 <style>
-    .main {background-color: #f8f9fa;}
-    h1, h2, h3 {color: #2c3e50;}
-    .stMetric {background-color: #e8f5e9; border-radius: 10px; padding: 10px;}
-    .css-1d391kg {padding: 2rem;}
+/* Centered header */
+h1 {
+    text-align: center;
+    color: #2C3E50;
+    font-weight: 700;
+}
+
+/* Subheader styling */
+h2, h3 {
+    color: #34495E;
+}
+
+/* Tabs centered */
+.stTabs [data-baseweb="tab-list"] {
+    justify-content: center;
+}
+
+/* KPI metric cards */
+.stMetric {
+    background-color: #e8f5e9;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* Page background */
+.main {
+    background-color: #f8f9fa;
+}
+
+/* Upload box styling */
+.css-1cpxqw2 {
+    border: 2px dashed #4CAF50 !important;
+    border-radius: 10px;
+    padding: 20px;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # --- Header ---
-st.markdown("<h1 style='text-align:center;'>📊 A‑DAA v1 — AI Data Analyst</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;color:gray;'>Upload your dataset and explore insights powered by AI.</p>", unsafe_allow_html=True)
+st.markdown("<h1>📊 A‑DAA v1 — AI Data Analyst</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;color:gray;'>Upload your dataset and start exploring insights.</p>", unsafe_allow_html=True)
 
 # --- File Upload ---
 uploaded_file = st.file_uploader("📁 Upload CSV File", type=["csv"])
@@ -45,10 +77,14 @@ if uploaded_file:
     # --- Overview ---
     with tab1:
         st.subheader("📌 Dataset Overview")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Entries", len(df))
+            st.metric("Features", df.shape[1])
+        with col2:
+            st.metric("Missing Values", df.isnull().sum().sum())
+            st.metric("Duplicates", df.duplicated().sum())
         st.write(df.describe())
-        st.write("Missing Values:")
-        st.write(df.isnull().sum())
-        st.write("Duplicates:", df.duplicated().sum())
 
     # --- EDA ---
     with tab2:
